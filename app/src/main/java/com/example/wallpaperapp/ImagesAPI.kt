@@ -13,5 +13,6 @@ interface ImagesAPI {
         @Query("purity") purity: Int,
         @Query("sorting") sorting: String,
         @Query("page") page: Int = 1,
+        @Query("ratios") ratios: String = "9x16,9x18,10x16",
     ): retrofit2.Call<DataResponseModel>
 }
