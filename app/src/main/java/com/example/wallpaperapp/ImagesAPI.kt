@@ -10,7 +10,7 @@ interface ImagesAPI {
     fun getResponse(
         @Query("apikey") apikey: String,
         @Query("q") query: String,
-        @Query("purity") purity: Int,
+        @Query("purity") purity: String,
         @Query("sorting") sorting: String,
         @Query("page") page: Int = 1,
         @Query("ratios") ratios: String = "9x16,9x18,10x16",

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.wallpaperapp.retrofit.DataResponseModel
+import com.example.wallpaperapp.ui.theme.CustomJCTheme
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
@@ -73,7 +74,9 @@ class MainActivity : ComponentActivity() {
 
         getImageCategory(categories, api) {
             setContent {
-                Navigation(getImageCategory =  it)
+                CustomJCTheme {
+                    Navigation(getImageCategory =  it)
+                }
             }
         }
     }
@@ -86,7 +89,7 @@ class MainActivity : ComponentActivity() {
         val listImageItem: MutableList<ImageItem> = mutableListOf()
 
         for (i in categories.indices) {
-            api.getResponse(API_KEY, categories[i], 110, "relevance")
+            api.getResponse(API_KEY, categories[i], "100", "relevance")
                 .enqueue(object : Callback<DataResponseModel> {
                     override fun onResponse(
                         call: Call<DataResponseModel>,
