@@ -1,7 +1,15 @@
 package com.example.wallpaperapp
 
+import android.app.Activity
+import android.app.WallpaperManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -31,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -38,13 +49,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 
 @Composable
 fun Navigation(getImageCategory: List<ImageItem>) {
     val myViewModel: MyViewModel = viewModel()
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = Screen.CategoriesScreen.route) {
-
         composable(route = Screen.CategoriesScreen.route) {
             CategoriesScreen(
                 navController = navController,
@@ -52,15 +65,13 @@ fun Navigation(getImageCategory: List<ImageItem>) {
                 myViewModel = myViewModel
             )
         }
-        composable(route = Screen.ImagesScreen.route) { arg ->
-
+        composable(route = Screen.ImagesScreen.route) {
             CategoryImagesScreen(
                 navController = navController,
                 myViewModel = myViewModel
             )
-
         }
-        composable(route = Screen.SelectedImageScreen.route) { arg ->
+        composable(route = Screen.SelectedImageScreen.route) {
             SelectedImage(image = myViewModel.imageLink.value)
         }
     }
@@ -84,7 +95,7 @@ fun CategoriesScreen(
                     Text(text = "Wallpaper categories")
                 },
                 actions = {
-                    IconButton(onClick = {/* do smth */ }) {
+                    IconButton(onClick = {/* Settings implementation */ }) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
                             contentDescription = "Application settings"
@@ -151,22 +162,23 @@ fun CategoryImagesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                title = {
+                    Text(text = myViewModel.category.value)
+                },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
                     containerColor = Color(0xfff3edf7),
                     titleContentColor = Color.Black
                 ),
-                actions = {
-                    IconButton(onClick = {/* go back */ },
-                        modifier = Modifier.align(Alignment.CenterVertically)) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Application settings"
-                        )
+                navigationIcon = {
+                    if (navController.previousBackStackEntry != null) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBack,
+                                contentDescription = "Application settings"
+                            )
+                        }
                     }
                 },
-                title = {
-                    Text(text = myViewModel.category.value)
-                }
             )
         }
     ) {
@@ -200,6 +212,13 @@ fun CategoryImagesScreen(
 
 @Composable
 fun SelectedImage(image: String) {
+    val context = LocalContext.current
+    val hasPermission = remember {
+        ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.SET_WALLPAPER
+        ) == PackageManager.PERMISSION_GRANTED
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
             modifier = Modifier.fillMaxSize(),
@@ -210,18 +229,87 @@ fun SelectedImage(image: String) {
             contentScale = ContentScale.Crop
         )
 
-        Button(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 10.dp),
-            onClick = { /*TODO*/ },
-            colors = ButtonDefaults.buttonColors(
-                contentColor = Color.Black,
-                containerColor = Color.White
-            )
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Установить в качестве обоев")
+            Button(
+                modifier = Modifier
+                    .padding(bottom = 5.dp),
+                onClick = {
+                    setWallpaperLock(context, hasPermission, image, "lock")
+                },
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.Black,
+                    containerColor = Color.White
+                )
+            ) {
+                Text(text = "Set as lock screen")
+            }
+
+            Button(
+                modifier = Modifier
+                    .padding(bottom = 5.dp),
+                onClick = {
+                    setWallpaperLock(context, hasPermission, image, "system")
+                },
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.Black,
+                    containerColor = Color.White
+                )
+            ) {
+                Text(text = "Set as system screen")
+            }
+
+            Button(
+                modifier = Modifier
+                    .padding(bottom = 5.dp),
+                onClick = {
+                    setWallpaperLock(context, hasPermission, image, "lock&system")
+                },
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.Black,
+                    containerColor = Color.White
+                )
+            ) {
+                Text(text = "Set everywhere")
+            }
         }
 
+    }
+}
+
+fun setWallpaperLock(context: Context, hasPermission: Boolean, image: String, flag: String) {
+    if (hasPermission) {
+        Glide.with(context)
+            .asBitmap()
+            .load(image)
+            .into(object : CustomTarget<Bitmap>() {
+                override fun onLoadFailed(errorDrawable: Drawable?) {
+                    super.onLoadFailed(errorDrawable)
+                    Toast.makeText(context, "Setting wallpaper error", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onResourceReady(
+                    resource: Bitmap,
+                    transition: Transition<in Bitmap>?
+                ) {
+                    val manager = WallpaperManager.getInstance(context)
+                    when(flag) {
+                        "lock" -> manager.setBitmap(resource, null, true, WallpaperManager.FLAG_LOCK)
+                        "system" -> manager.setBitmap(resource, null, true, WallpaperManager.FLAG_SYSTEM)
+                        "lock&system" -> manager.setBitmap(resource)
+                    }
+                    Toast.makeText(context, "Wallpaper has installed successfully!", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onLoadCleared(placeholder: Drawable?) {}
+            })
+    } else {
+        ActivityCompat.requestPermissions(
+            context as Activity,
+            arrayOf(android.Manifest.permission.SET_WALLPAPER),
+            120
+        )
     }
 }
