@@ -52,9 +52,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.bumptech.glide.Glide
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.wallpaperapp.ui.theme.CustomTheme
@@ -84,7 +84,7 @@ fun Navigation(getImageCategory: List<ImageItem>) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class)
 @Composable
 fun CategoriesScreen(
     navController: NavController,
@@ -93,7 +93,6 @@ fun CategoriesScreen(
 ) {
     var expandedSettings by remember { mutableStateOf(false) }
     var switchTheme by remember { mutableStateOf(false) }
-    var switchImages by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -138,31 +137,6 @@ fun CategoriesScreen(
                                 }
                             )
                         }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 7.dp, start = 7.dp, end = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Allow show 18+ images",
-                                modifier = Modifier.padding(end = 5.dp),
-                                color = CustomThemeManager.colors.textColor
-                            )
-                            Switch(
-                                checked = switchImages,
-                                onCheckedChange = { switchImages = !switchImages },
-                                thumbContent = {
-                                    Toast.makeText(
-                                        LocalContext.current,
-                                        "Search images was changed!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            )
-                        }
                     }
                 }
             )
@@ -183,10 +157,8 @@ fun CategoriesScreen(
                             },
                         contentAlignment = Alignment.BottomStart
                     ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(model.imageUrl[0])
-                                .build(),
+                        GlideImage(
+                            model = model.imageUrl[0],
                             contentDescription = "Category",
                             contentScale = ContentScale.Crop,
                         )
@@ -207,7 +179,7 @@ fun CategoriesScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class)
 @Composable
 fun CategoryImagesScreen(
     navController: NavController,
@@ -253,10 +225,8 @@ fun CategoryImagesScreen(
                             },
                         contentAlignment = Alignment.BottomStart
                     ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(model)
-                                .build(),
+                        GlideImage(
+                            model = model,
                             contentDescription = myViewModel.category.value,
                             contentScale = ContentScale.Crop,
                         )
@@ -267,6 +237,7 @@ fun CategoryImagesScreen(
     }
 }
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun SelectedImage(image: String) {
     val context = LocalContext.current
@@ -277,11 +248,9 @@ fun SelectedImage(image: String) {
         ) == PackageManager.PERMISSION_GRANTED
     }
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
+        GlideImage(
             modifier = Modifier.fillMaxSize(),
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(image)
-                .build(),
+            model = image,
             contentDescription = "Image",
             contentScale = ContentScale.Crop
         )
